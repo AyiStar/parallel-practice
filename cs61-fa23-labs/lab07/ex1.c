@@ -49,12 +49,25 @@ long long int sum_simd(int vals[NUM_ELEMS]) {
     clock_t start = clock();
     __m128i _127 = _mm_set1_epi32(127); // This is a vector with 127s in it... Why might you need this?
     long long int result = 0; // This is where you should put your final result!
+    int st_arr[4] = {};
     /* DO NOT MODIFY ANYTHING ABOVE THIS LINE (in this function) */
 
     for(unsigned int w = 0; w < OUTER_ITERATIONS; w++) {
         /* YOUR CODE GOES HERE */
-
-        /* Hint: you'll need a tail case. */
+        __m128i sum_v = _mm_setzero_si128();
+        for (unsigned int i = 0; i < NUM_ELEMS / 4 * 4; i += 4) {
+            __m128i xv = _mm_loadu_si128((__m128i*)(vals + i));
+            __m128i mask_v = _mm_cmpgt_epi32(xv, _127);
+            xv = _mm_and_si128(xv, mask_v);
+            sum_v = _mm_add_epi32(sum_v, xv);
+        }
+        _mm_storeu_si128((__m128i *) st_arr, sum_v);
+        result += (st_arr[0] + st_arr[1] + st_arr[2] + st_arr[3]);
+        for(unsigned int i = NUM_ELEMS / 4 * 4; i < NUM_ELEMS; i++) {
+            if (vals[i] >= 128) {
+                result += vals[i];
+            }
+        }
     }
 
     /* DO NOT MODIFY ANYTHING BELOW THIS LINE (in this function) */
