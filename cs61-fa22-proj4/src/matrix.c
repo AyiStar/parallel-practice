@@ -48,7 +48,7 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high) {
  * You may assume `row` and `col` are valid. Note that the matrix is in row-major order.
  */
 double get(matrix *mat, int row, int col) {
-    // Task 1.1 TODO
+    return mat->data[row * mat->cols + col];
 }
 
 /*
@@ -56,7 +56,7 @@ double get(matrix *mat, int row, int col) {
  * `col` are valid. Note that the matrix is in row-major order.
  */
 void set(matrix *mat, int row, int col, double val) {
-    // Task 1.1 TODO
+    mat->data[row * mat->cols + col] = val;
 }
 
 /*
@@ -69,8 +69,6 @@ void set(matrix *mat, int row, int col, double val) {
  * Return 0 upon success.
  */
 int allocate_matrix(matrix **mat, int rows, int cols) {
-    // Task 1.2 TODO
-    // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
     // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
     // 3. Allocate space for the matrix data, initializing all entries to be 0. Return -2 if allocating memory failed.
@@ -79,6 +77,26 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
     // 6. Set the `ref_cnt` field to 1.
     // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
     // 8. Return 0 upon success.
+    if (rows <= 0 || cols <= 0) {
+        return -1;
+    }
+    int n_elem = rows * cols;
+    matrix *pmat = (matrix*)calloc(1, sizeof(matrix));
+    if (pmat == NULL) {
+        return -2;
+    }
+    double *data = (double*)calloc((size_t)n_elem, sizeof(double));
+    if (data == NULL) {
+        free(mat);
+        return -2;
+    }
+    pmat->rows = rows;
+    pmat->cols = cols;
+    pmat->data = data;
+    pmat->parent = NULL;
+    pmat->ref_cnt = 1;
+    *mat = pmat;
+    return 0;
 }
 
 /*
@@ -87,11 +105,22 @@ int allocate_matrix(matrix **mat, int rows, int cols) {
  * matrix has no other references (including itself).
  */
 void deallocate_matrix(matrix *mat) {
-    // Task 1.3 TODO
-    // HINTS: Follow these steps.
     // 1. If the matrix pointer `mat` is NULL, return.
     // 2. If `mat` has no parent: decrement its `ref_cnt` field by 1. If the `ref_cnt` field becomes 0, then free `mat` and its `data` field.
     // 3. Otherwise, recursively call `deallocate_matrix` on `mat`'s parent, then free `mat`.
+    if (mat == NULL) {
+        return;
+    }
+    if (mat->parent == NULL) {
+        mat->ref_cnt--;
+        if (mat->ref_cnt == 0) {
+            free(mat->data);
+            free(mat);
+        }
+        return;
+    }
+    deallocate_matrix(mat->parent);
+    free(mat);
 }
 
 /*
@@ -107,8 +136,6 @@ void deallocate_matrix(matrix *mat) {
  * there is no need to allocate space for matrix data.
  */
 int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int cols) {
-    // Task 1.4 TODO
-    // HINTS: Follow these steps.
     // 1. Check if the dimensions are valid. Return -1 if either dimension is not positive.
     // 2. Allocate space for the new matrix struct. Return -2 if allocating memory failed.
     // 3. Set the `data` field of the new struct to be the `data` field of the `from` struct plus `offset`.
@@ -117,13 +144,30 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
     // 6. Increment the `ref_cnt` field of the `from` struct by 1.
     // 7. Store the address of the allocated matrix struct at the location `mat` is pointing at.
     // 8. Return 0 upon success.
+    if (rows <= 0 || cols <= 0) {
+        return -1;
+    }
+    matrix* pmat = (matrix*)calloc(1, sizeof(matrix));
+    if (pmat == NULL) {
+        return -2;
+    }
+    pmat->rows = rows;
+    pmat->cols = cols;
+    pmat->data = from->data + offset;
+    pmat->parent = from;
+    from->ref_cnt++;
+    *mat = pmat;
+    return 0;
 }
 
 /*
  * Sets all entries in mat to val. Note that the matrix is in row-major order.
  */
 void fill_matrix(matrix *mat, double val) {
-    // Task 1.5 TODO
+    int n_elem = mat->rows * mat->cols;
+    for (int i = 0; i < n_elem; i++) {
+        mat->data[i] = val;
+    }
 }
 
 /*
@@ -132,7 +176,11 @@ void fill_matrix(matrix *mat, double val) {
  * Note that the matrix is in row-major order.
  */
 int abs_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
+    int n_elem = mat->rows * mat->cols;
+    for (int i = 0; i < n_elem; i++) {
+        result->data[i] = (mat->data[i] >= 0 ? mat->data[i] : -mat->data[i]);
+    }
+    return 0;
 }
 
 /*
@@ -142,7 +190,11 @@ int abs_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int neg_matrix(matrix *result, matrix *mat) {
-    // Task 1.5 TODO
+    int n_elem = mat->rows * mat->cols;
+    for (int i = 0; i < n_elem; i++) {
+        result->data[i] = -mat->data[i];
+    }
+    return 0;
 }
 
 /*
@@ -152,7 +204,11 @@ int neg_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
+    int n_elem = mat1->rows * mat1->cols;
+    for (int i = 0; i < n_elem; i++) {
+        result->data[i] = mat1->data[i] + mat2->data[i];
+    }
+    return 0;
 }
 
 /*
@@ -163,7 +219,11 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.5 TODO
+    int n_elem = mat1->rows * mat1->cols;
+    for (int i = 0; i < n_elem; i++) {
+        result->data[i] = mat1->data[i] - mat2->data[i];
+    }
+    return 0;
 }
 
 /*
@@ -174,7 +234,16 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    // Task 1.6 TODO
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < mat1->cols; k++) {
+                sum += get(mat1, i, k) * get(mat2, k, j);
+            }
+            set(result, i, j, sum);
+        }
+    }
+    return 0;
 }
 
 /*
@@ -185,5 +254,23 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
  * Note that the matrix is in row-major order.
  */
 int pow_matrix(matrix *result, matrix *mat, int pow) {
-    // Task 1.6 TODO
+    int N = mat->rows;
+    if (pow == 0) {
+        for (int i = 0; i < N; i++) {
+            set(result, i, i, 1.0);
+        }
+        return 0;
+    }
+    matrix *helper = NULL;
+    int ret = allocate_matrix(&helper, N, N);
+    if (ret != 0) {
+        return ret;
+    }
+    memcpy(helper->data, mat->data, sizeof(double) * (size_t)(N * N));
+    for (int p = 1; p < pow; p++) {
+        mul_matrix(result, helper, mat);
+        memcpy(helper->data, result->data, sizeof(double) * (size_t)(N * N));
+    }
+    deallocate_matrix(helper);
+    return 0;
 }
